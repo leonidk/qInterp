@@ -1,6 +1,7 @@
 #include "oni_camera.h"
 #include "imshow.h"
 #include "image.h"
+#include "depth_proc.h"
 
 int main(int argc, char* argv[])
 {
