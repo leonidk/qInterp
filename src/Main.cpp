@@ -158,9 +158,9 @@ int main(int argc, char* argv[])
 					}
 				}
 				for (int i = 0; i < depth.width*depth.height; i++) {
-					auto sw = std::min<uint32_t>(mdP[2 * i + 0], mdP[2 * i + 1]);
+					auto sw = std::min<uint32_t>(dP[2 * i + 0], dP[2 * i + 1]);
 					auto lw = std::max<uint32_t>(mdP[2 * i + 0], mdP[2 * i + 1]);
-					int sgn = (sw == mdP[2 * i + 0]) ? 1 : -1;
+					int sgn = (sw == dP[2 * i + 0]) ? 1 : -1;
 					auto dst = (lw == mdP[2 * i + 0]) ? dP[2 * i + 0] : dP[2 * i + 1];
 					if (p[i]) {
 						//if (sw == 1) {
@@ -178,7 +178,7 @@ int main(int argc, char* argv[])
 							//float shift = static_cast<float>(mdP[2 * i + 0] - dP[2 * i + 0]) / static_cast<float>(mdP[2 * i + 0]);
 							float shift = (static_cast<float>(dP[2 * i + 1]) + static_cast<float>(dP[2 * i + 0])) / static_cast<float>(2*lw);
 
-							shift = 5-5*shift;
+							shift = 5.0f-5.0f*shift;
 							shift = nearbyint(sgn*shift);
 							s[i] = shift;
 
