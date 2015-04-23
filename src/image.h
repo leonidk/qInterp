@@ -11,7 +11,8 @@ namespace img {
 		Image(int width, int height, T* d) : data(d, null_d<T>()), width(width), height(height)  {}
 
 		T* const ptr() { return (T*)data.get(); }
-
+		Image<T, C> copy() { Image<T, C> returnVal(width, height); memcpy(returnVal.data.get(), data.get(), width*height*C*sizeof(T)); return returnVal; }
+		
 		template< typename T >
 		struct null_d { void operator ()(T const * p)	{ } };
 		template< typename T >
