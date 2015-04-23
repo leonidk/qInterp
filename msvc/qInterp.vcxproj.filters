@@ -11,7 +11,7 @@
     <ClInclude Include="..\src\imshow.h" />
     <ClInclude Include="..\src\image.h" />
     <ClInclude Include="..\src\camera.h" />
-    <ClInclude Include="..\src\oni_camera.h" />
     <ClInclude Include="..\src\depth_proc.h" />
+    <ClInclude Include="..\src\oni_camera.h" />
   </ItemGroup>
 </Project>
