@@ -28,9 +28,9 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 	auto h = input_output.height;
 
 	img::Img<uint8_t> edges(w,h);
-	//img::Img<uint32_t> shift(w, h);
-	//auto s = shift.ptr();
-	//memset(s, 0, w*h * 4);
+	img::Img<uint32_t> shift(w, h);
+	auto s = shift.ptr();
+	memset(s, 0, w*h * 4);
 
 	memset(edges.data.get(), 0, w*h);
 	auto eP = edges.ptr();
@@ -158,6 +158,7 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 
 			shift = halfScale - halfScale*shift;
 			int i_shift = (int)nearbyint(sgn*shift);
+			s[i] = i_shift;
 			p[i] = p[i] * scaleFactor + i_shift;
 		}
 	}

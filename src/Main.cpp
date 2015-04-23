@@ -12,8 +12,9 @@ int main(int argc, char* argv[])
 		img::Img<uint8_t>  z_viz(cam.getXDim(), cam.getYDim());
 		while (cam.syncNext()) {
 			img::Img<uint16_t> depth(cam.getXDim(), cam.getYDim(),cam.getDepth());
-
-			const int zToDispConst = 352400; 
+			const int convexSegmentIteratons = 4;
+			const int zScaleFactor = 10;
+			const int zToDispConst = 3524000 / zScaleFactor;
 			auto qDepth = depth.copy();
 			{
 				auto p = qDepth.ptr();
@@ -22,9 +23,9 @@ int main(int argc, char* argv[])
 				}
 			}
 			auto oDepth = qDepth.copy();
-			generateDequant<10,4>(qDepth);
+			generateDequant<zScaleFactor, convexSegmentIteratons>(qDepth);
 			{
-				auto nc = zToDispConst * 10;
+				auto nc = zToDispConst * zScaleFactor;
 				auto p = qDepth.ptr();
 				for (int i = 0; i < qDepth.width*qDepth.height; i++) {
 					p[i] = p[i] ? nc / ((int)p[i]) : 0;
