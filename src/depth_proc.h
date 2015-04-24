@@ -27,7 +27,7 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 	auto w = input_output.width;
 	auto h = input_output.height;
 
-	img::Img<uint8_t> edges(w,h);
+	img::Img<uint8_t> edges(w, h);
 	img::Img<uint32_t> shift(w, h);
 	auto s = shift.ptr();
 	memset(s, 0, w*h * 4);
@@ -40,7 +40,7 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 	auto dP = distance.ptr();
 	auto mdP = minDistance.ptr();
 	for (int i = 0; i < 2 * distance.width*distance.height; i++) {
-		dP[i] =  INT_MAX;
+		dP[i] = INT_MAX;
 	}
 	for (int i = 0; i < 2 * minDistance.width*minDistance.height; i++) {
 		mdP[i] = 0;
@@ -123,8 +123,9 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 				dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * ((y + 1)*w + x) + 1] + 1);
 			}
 		}
-	} else {
-		img::Img<float> b(std::max<int>(w,h)+1, 1);
+	}
+	else {
+		img::Img<float> b(std::max<int>(w, h) + 1, 1);
 		img::Img<float> p(std::max<int>(w, h) + 1, 1);
 		auto boundries = b.ptr();
 		auto parabolas = p.ptr();
@@ -182,7 +183,7 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 					}
 				}
 				k = 0;
-				for (int y = 0; y <h; y++) {
+				for (int y = 0; y < h; y++) {
 					auto f = [&](int z) { return (float)dP[2 * (z*w + x) + c]; };
 
 					while (boundries[k + 1] < y)
@@ -193,28 +194,27 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 		}
 	}
 
-	
+
 	//could also use connected component with set/union to get correct segment maximums in O(n), instead of iterative approx
-	for (int iter = 0; iter < ITERNUM; iter++){
-		for (int y = 0; y < h; y++) {
-			for (int x = 1; x < w; x++) {
-				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * (y*w + x - 1) + 0]));
-				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * (y*w + x - 1) + 1]));
+	for (int iter = 0; iter < ITERNUM; iter++) {
+		for (int y = 1; y < h; y++) {
+			for (int x = 1; x < w - 1; x++) {
+				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 0], std::max<uint32_t>(mdP[2 * ((y - 1)*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * (y*w + x - 1) + 0]))));
+				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 1], std::max<uint32_t>(mdP[2 * ((y - 1)*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * (y*w + x - 1) + 1]))));
 			}
-			for (int x = w - 2; x >= 0; x--) {
-				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * (y*w + x + 1) + 0]));
-				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * (y*w + x + 1) + 1]));
+			for (int x = w - 2; x >= 1; x--) {
+				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 0], std::max<uint32_t>(mdP[2 * ((y - 1)*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * (y*w + x - 1) + 0]))));
+				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 1], std::max<uint32_t>(mdP[2 * ((y - 1)*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * (y*w + x - 1) + 1]))));
 			}
 		}
-		//do each column, forward and backwards pass
-		for (int x = 0; x < w; x++) {
-			for (int y = 1; y < h; y++) {
-				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * ((y - 1)*w + x) + 0]));
-				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * ((y - 1)*w + x) + 1]));
+		for (int y = h - 2; y >= 0; y--) {
+			for (int x = 1; x < w - 1; x++) {
+				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 0], std::max<uint32_t>(mdP[2 * ((y + 1)*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * (y*w + x - 1) + 0]))));
+				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 1], std::max<uint32_t>(mdP[2 * ((y + 1)*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * (y*w + x - 1) + 1]))));
 			}
-			for (int y = h - 2; y >= 0; y--) {
-				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * ((y + 1)*w + x) + 0]));
-				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * ((y + 1)*w + x) + 1]));
+			for (int x = w - 2; x >= 1; x--) {
+				mdP[2 * (y*w + x) + 0] = dP[2 * (y*w + x) + 0] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 0], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 0], std::max<uint32_t>(mdP[2 * ((y + 1)*w + x) + 0], std::max<uint32_t>(mdP[2 * (y*w + x) + 0], mdP[2 * (y*w + x - 1) + 0]))));
+				mdP[2 * (y*w + x) + 1] = dP[2 * (y*w + x) + 1] == 1 ? 1 : std::max<uint32_t>(dP[2 * (y*w + x) + 1], std::max<uint32_t>(mdP[2 * ((y)*w + x + 1) + 1], std::max<uint32_t>(mdP[2 * ((y + 1)*w + x) + 1], std::max<uint32_t>(mdP[2 * (y*w + x) + 1], mdP[2 * (y*w + x - 1) + 1]))));
 			}
 		}
 	}
