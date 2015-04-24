@@ -20,7 +20,7 @@ inline void generatePoints(img::Img<uint16_t> input, const float fx, const float
 	}
 }
 
-template <int scaleFactor,int ITERNUM>
+template <int scaleFactor, int ITERNUM, bool doL1=true>
 inline void generateDequant(img::Img<uint16_t> input_output)
 {
 	auto p = input_output.ptr();
@@ -40,7 +40,7 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 	auto dP = distance.ptr();
 	auto mdP = minDistance.ptr();
 	for (int i = 0; i < 2 * distance.width*distance.height; i++) {
-		dP[i] = INT_MAX;
+		dP[i] =  INT_MAX;
 	}
 	for (int i = 0; i < 2 * minDistance.width*minDistance.height; i++) {
 		mdP[i] = 0;
@@ -100,29 +100,101 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 		dP[2 * (y*w + x) + 1] = 1;
 		mdP[2 * (y*w + x) + 1] = 1;
 	}
-	//do each row, forward and backwards pass
-	for (int y = 0; y < h; y++) {
-		for (int x = 1; x < w; x++) {
-			dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * (y*w + x - 1) + 0] + 1);
-			dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * (y*w + x - 1) + 1] + 1);
+	if (doL1) {
+		//do each row, forward and backwards pass
+		for (int y = 0; y < h; y++) {
+			for (int x = 1; x < w; x++) {
+				dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * (y*w + x - 1) + 0] + 1);
+				dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * (y*w + x - 1) + 1] + 1);
+			}
+			for (int x = w - 2; x >= 0; x--) {
+				dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * (y*w + x + 1) + 0] + 1);
+				dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * (y*w + x + 1) + 1] + 1);
+			}
 		}
-		for (int x = w - 2; x >= 0; x--) {
-			dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * (y*w + x + 1) + 0] + 1);
-			dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * (y*w + x + 1) + 1] + 1);
+		//do each column, forward and backwards pass
+		for (int x = 0; x < w; x++) {
+			for (int y = 1; y < h; y++) {
+				dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * ((y - 1)*w + x) + 0] + 1);
+				dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * ((y - 1)*w + x) + 1] + 1);
+			}
+			for (int y = h - 2; y >= 0; y--) {
+				dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * ((y + 1)*w + x) + 0] + 1);
+				dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * ((y + 1)*w + x) + 1] + 1);
+			}
 		}
-	}
-	//do each column, forward and backwards pass
-	for (int x = 0; x < w; x++) {
-		for (int y = 1; y < h; y++) {
-			dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * ((y - 1)*w + x) + 0] + 1);
-			dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * ((y - 1)*w + x) + 1] + 1);
+	} else {
+		img::Img<float> b(std::max<int>(w,h)+1, 1);
+		img::Img<float> p(std::max<int>(w, h) + 1, 1);
+		auto boundries = b.ptr();
+		auto parabolas = p.ptr();
+
+		for (int y = 0; y < h; y++) {
+			for (int c = 0; c < 2; c++) {
+				int k = 0;
+				parabolas[0] = 0;
+				boundries[0] = (float)-INT_MAX;
+				boundries[1] = (float)INT_MAX;
+				for (int x = 1; x < w; x++) {
+					auto f = [&](int z) { return (float)dP[2 * (y*w + z) + c]; };
+
+					for (;; k--) {
+						float dn = (2 * x - 2 * parabolas[k]);
+						float s = ((f(x) + x*x) - (f((int)parabolas[k]) + square(parabolas[k]))) / (dn == 0.0f ? 1 : dn);
+						if (s > boundries[k]) {
+							k = k + 1;
+							parabolas[k] = (float)x;
+							boundries[k] = s;
+							boundries[k + 1] = (float)INT_MAX;
+							break;
+						}
+					}
+				}
+				k = 0;
+				for (int x = 0; x < w; x++) {
+					auto f = [&](int z) { return (float)dP[2 * (y*w + z) + c]; };
+
+					while (boundries[k + 1] < x)
+						k = k + 1;
+					dP[2 * (y*w + x) + c] = (uint32_t)(square(x - parabolas[k]) + f((int)parabolas[k]));
+				}
+			}
 		}
-		for (int y = h - 2; y >= 0; y--) {
-			dP[2 * (y*w + x) + 0] = std::min<uint32_t>(dP[2 * (y*w + x) + 0], dP[2 * ((y + 1)*w + x) + 0] + 1);
-			dP[2 * (y*w + x) + 1] = std::min<uint32_t>(dP[2 * (y*w + x) + 1], dP[2 * ((y + 1)*w + x) + 1] + 1);
+		for (int x = 0; x < w; x++) {
+			for (int c = 0; c < 2; c++) {
+				int k = 0;
+				parabolas[0] = 0;
+				boundries[0] = (float)-INT_MAX;
+				boundries[1] = (float)INT_MAX;
+				for (int y = 1; y <h; y++) {
+					auto f = [&](int z) { return (float)dP[2 * (z*w + x) + c]; };
+
+					for (;; k--) {
+						float dn = (2 * y - 2 * parabolas[k]);
+						float s = ((f(y) + y*y) - (f((int)parabolas[k]) + square(parabolas[k]))) / (dn == 0.0f ? 1 : dn);
+						if (s > boundries[k]) {
+							k = k + 1;
+							parabolas[k] = (float)y;
+							boundries[k] = s;
+							boundries[k + 1] = (float)INT_MAX;
+							break;
+						}
+					}
+				}
+				k = 0;
+				for (int y = 0; y <h; y++) {
+					auto f = [&](int z) { return (float)dP[2 * (z*w + x) + c]; };
+
+					while (boundries[k + 1] < y)
+						k = k + 1;
+					dP[2 * (y*w + x) + c] = (uint32_t)(square(y - parabolas[k]) + f((int)parabolas[k]));
+				}
+			}
 		}
 	}
 
+	
+	//could also use connected component with set/union to get correct segment maximums in O(n), instead of iterative approx
 	for (int iter = 0; iter < ITERNUM; iter++){
 		for (int y = 0; y < h; y++) {
 			for (int x = 1; x < w; x++) {
