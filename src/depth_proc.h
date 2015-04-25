@@ -220,13 +220,13 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 	}
 	const float halfScale = scaleFactor*0.5f;
 	for (int i = 0; i < w*h; i++) {
-		auto sw = std::min<uint32_t>(dP[2 * i + 0], dP[2 * i + 1]);
-		auto lw = std::max<uint32_t>(mdP[2 * i + 0], mdP[2 * i + 1]);
+		int sw = std::min<uint32_t>(dP[2 * i + 0], dP[2 * i + 1]);
+		int lw = std::max<uint32_t>(mdP[2 * i + 0], mdP[2 * i + 1]);
 		int sgn = (sw == dP[2 * i + 0]) ? 1 : -1;
-		auto dst = (lw == mdP[2 * i + 0]) ? dP[2 * i + 0] : dP[2 * i + 1];
+		int dst = (lw == mdP[2 * i + 0]) ? dP[2 * i + 0] : dP[2 * i + 1];
 		if (p[i]) {
-
-			float shift = (static_cast<float>(dP[2 * i + 1]) + static_cast<float>(dP[2 * i + 0]) - 2.0f) / static_cast<float>(2 * lw);
+			auto den = 2 * lw - 2;
+			float shift = (static_cast<float>(dP[2 * i + 1]) + static_cast<float>(dP[2 * i + 0]) - 2.0f) / static_cast<float>(den ? den : 1);
 
 			shift = halfScale - halfScale*shift;
 			int i_shift = (int)nearbyint(sgn*shift);

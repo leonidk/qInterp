@@ -98,7 +98,10 @@ for i in range(len(x)):
 	sgn = 1 if sw == d1[i] else -1
 	sgn2 = '+' if sgn == 1 else '-'
 	#print d1[i],d2[i],sgn2,lw,mD1[i],mD2[i]
-	shift = float(d2[i]+d1[i]-2)/float(2*lw)
+	den = 2*lw-2
+	shift = float(d2[i]+d1[i]-2)/(den if den != 0 else 1)
+
+	print i,shift,sw,lw,d1[i],d2[i],float(d2[i]+d1[i]-2),den
 	y[i] = x[i] + sgn*(0.5-0.5*shift)
 
 close('all')
