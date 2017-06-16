@@ -8,8 +8,8 @@ inline void generatePoints(img::Img<uint16_t> input, const float fx, const float
 	auto halfY = py;
 	auto cX = 1.0f / fx;
 	auto cY = 1.0f / fy;
-	auto depth = input.ptr();
-	auto points = output.ptr();
+	auto depth = input.ptr;
+	auto points = output.ptr;
 	for (int i = 0; i < input.height; i++) {
 		for (int j = 0; j < input.width; j++) {
 			const auto z = depth[(i * input.width + j)];
@@ -23,22 +23,22 @@ inline void generatePoints(img::Img<uint16_t> input, const float fx, const float
 template <int scaleFactor, int ITERNUM, bool doL1=true>
 inline void generateDequant(img::Img<uint16_t> input_output)
 {
-	auto p = input_output.ptr();
+	auto p = input_output.ptr;
 	auto w = input_output.width;
 	auto h = input_output.height;
 
 	img::Img<uint8_t> edges(w, h);
 	img::Img<uint32_t> shift(w, h);
-	auto s = shift.ptr();
+	auto s = shift.ptr;
 	memset(s, 0, w*h * 4);
 
 	memset(edges.data.get(), 0, w*h);
-	auto eP = edges.ptr();
+	auto eP = edges.ptr;
 
 	img::Image<uint32_t, 2> distance(w, h);
 	img::Image<uint32_t, 2> minDistance(w, h);
-	auto dP = distance.ptr();
-	auto mdP = minDistance.ptr();
+	auto dP = distance.ptr;
+	auto mdP = minDistance.ptr;
 	for (int i = 0; i < 2 * distance.width*distance.height; i++) {
 		dP[i] = INT_MAX;
 	}
@@ -127,8 +127,8 @@ inline void generateDequant(img::Img<uint16_t> input_output)
 	else {
 		img::Img<float> b(std::max<int>(w, h) + 1, 1);
 		img::Img<float> p(std::max<int>(w, h) + 1, 1);
-		auto boundries = b.ptr();
-		auto parabolas = p.ptr();
+		auto boundries = b.ptr;
+		auto parabolas = p.ptr;
 
 		for (int y = 0; y < h; y++) {
 			for (int c = 0; c < 2; c++) {
@@ -266,12 +266,139 @@ inline img::Image<float, 3> generatePoints(img::Img<uint16_t> input, const float
 	return output;
 }
 
+
+template <int size>
+inline void generateNormals_FromDepth(const uint16_t *depth, const int width, const int height, const float fx, const float fy, const float ppx, const float ppy, float *normals) {
+    const auto cX = 1.0f / fx;
+    const auto cY = 1.0f / fy;
+    const auto xStep = cX * size;
+    const auto yStep = cY * size;
+    auto halfX = ppx;
+    auto halfY = ppy;
+    const auto xyStep = xStep * yStep;
+    for (int i = size; i < height - size; i++) {
+        for (int j = size; j < width - size; j++) {
+            if (!depth[i * width + j])
+                continue;
+            const auto cDepth = depth[i * width + j];
+            float pc[] = { cX*(j - halfX)*cDepth, cY*(i - halfY)*cDepth, (float)cDepth };
+            float outNorm[3] = { 0, 0, 0 };
+            int count = 0;
+
+            if (depth[i * width + j + size] && depth[(i + size) * width + j]) {
+                const auto xDepth = depth[i * width + j + size];
+                const auto yDepth = depth[(i + size) * width + j];
+                const auto diffXZ = xDepth - cDepth;
+                const auto diffYZ = yDepth - cDepth;
+                float px[] = { cX*(j - halfX + size)*xDepth, cY*(i - halfY)*xDepth, (float)xDepth };
+                float py[] = { cX*(j - halfX)*yDepth, cY*(i - halfY + size)*yDepth, (float)yDepth };
+
+                // cX*(5*z +j*(z-z2));
+                float v1[] = { px[0] - pc[0], px[1] - pc[1], px[2] - pc[2] };
+                float v2[] = { py[0] - pc[0], py[1] - pc[1], py[2] - pc[2] };
+
+                float v3[3];
+                cross(v1, v2, v3);
+
+                //possible optimization to unroll all operations
+                //const float v11[] = { cX*(diffXZ*(j - halfX) + size*xDepth), cY*diffXZ*(i - halfY), (float)diffXZ };
+                //const float v22[] = { cX*diffYZ*(j - halfX), cY*(diffYZ*(i - halfY) + size*yDepth), (float)diffYZ };
+                //float v33[3];
+                //cross(v11, v22, v33);
+
+                normalize(v3);
+                outNorm[0] += v3[0];
+                outNorm[1] += v3[1];
+                outNorm[2] += v3[2];
+                count++;
+            }
+            if (depth[i * width + j - size] && depth[(i + size) * width + j]) {
+                const auto xDepth = depth[i * width + j - size];
+                const auto yDepth = depth[(i + size) * width + j];
+                const auto diffXZ = xDepth - cDepth;
+                const auto diffYZ = yDepth - cDepth;
+                float px[] = { cX*(j - halfX - size)*xDepth, cY*(i - halfY)*xDepth, (float)xDepth };
+                float py[] = { cX*(j - halfX)*yDepth, cY*(i - halfY + size)*yDepth, (float)yDepth };
+
+                // cX*(5*z +j*(z-z2));
+                float v1[] = { pc[0] - px[0], pc[1] - px[1], pc[2] - px[2] };
+                float v2[] = { py[0] - pc[0], py[1] - pc[1], py[2] - pc[2] };
+
+                float v3[3];
+                cross(v1, v2, v3);
+                normalize(v3);
+                outNorm[0] += v3[0];
+                outNorm[1] += v3[1];
+                outNorm[2] += v3[2];
+                count++;
+            }
+            if (depth[i * width + j + size] && depth[(i - size) * width + j]) {
+                const auto xDepth = depth[i * width + j + size];
+                const auto yDepth = depth[(i - size) * width + j];
+                const auto diffXZ = xDepth - cDepth;
+                const auto diffYZ = yDepth - cDepth;
+                float px[] = { cX*(j - halfX + size)*xDepth, cY*(i - halfY)*xDepth, (float)xDepth };
+                float py[] = { cX*(j - halfX)*yDepth, cY*(i - halfY - size)*yDepth, (float)yDepth };
+
+                // cX*(5*z +j*(z-z2));
+                float v1[] = { px[0] - pc[0], px[1] - pc[1], px[2] - pc[2] };
+                float v2[] = { pc[0] - py[0], pc[1] - py[1], pc[2] - py[2] };
+
+                float v3[3];
+                cross(v1, v2, v3);
+                normalize(v3);
+                outNorm[0] += v3[0];
+                outNorm[1] += v3[1];
+                outNorm[2] += v3[2];
+                count++;
+            }
+            if (depth[i * width + j - size] && depth[(i - size) * width + j]) {
+                const auto xDepth = depth[i * width + j - size];
+                const auto yDepth = depth[(i - size) * width + j];
+                const auto diffXZ = xDepth - cDepth;
+                const auto diffYZ = yDepth - cDepth;
+                float px[] = { cX*(j - halfX - size)*xDepth, cY*(i - halfY)*xDepth, (float)xDepth };
+                float py[] = { cX*(j - halfX)*yDepth, cY*(i - halfY - size)*yDepth, (float)yDepth };
+
+                // cX*(5*z +j*(z-z2));
+                float v1[] = { pc[0] - px[0], pc[1] - px[1], pc[2] - px[2] };
+                float v2[] = { pc[0] - py[0], pc[1] - py[1], pc[2] - py[2] };
+
+                float v3[3];
+                cross(v1, v2, v3);
+                normalize(v3);
+                outNorm[0] += v3[0];
+                outNorm[1] += v3[1];
+                outNorm[2] += v3[2];
+                count++;
+            }
+            if (count) {
+                float v3[3] = { outNorm[0] / count, outNorm[1] / count, outNorm[2] / count };
+                normalize(v3);
+
+                normals[3 * (i * width + j)] = v3[0];
+                normals[3 * (i * width + j) + 1] = v3[1];
+                normals[3 * (i * width + j) + 2] = v3[2];
+            }
+        }
+    }
+}
+
+
+template <int size>
+inline img::Image<float, 3> generateNormals_FromDepth(img::Img<uint16_t> input, const float fx, const float fy, const float px, const float py) {
+    img::Image<float, 3> output(input.width, input.height);
+    generateNormals_FromDepth<size>(input.ptr,input.width,input.height,fx,fy,px,py, output.ptr);
+    return output;
+}
+
+
 template <int size>
 inline void generateNormals_fromPoints(img::Image<float, 3> input, img::Image<float, 3> output) {
 	auto height = input.height;
 	auto width = input.width;
-	auto points = input.ptr();
-	auto normals = output.ptr();
+	auto points = input.ptr;
+	auto normals = output.ptr;
 	memset(normals, 0, width*height*sizeof(float) * 3);
 	for (int i = size; i < height - size; i++) {
 		for (int j = size; j < width - size; j++) {
@@ -363,3 +490,4 @@ inline img::Image<float, 3> generateNormals_fromPoints(img::Image<float, 3> inpu
 	generateNormals_fromPoints<size>(input, output);
 	return output;
 }
+

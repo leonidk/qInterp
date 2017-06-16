@@ -12,8 +12,8 @@ namespace img {
 	{
 		auto cnt = img_in.width*img_in.height*C;
 		auto scale = (255.0 / (double)(max_val-min_val));
-		auto in_img = img_in.ptr();
-		auto out_img = img_out.ptr();
+		auto in_img = img_in.ptr;
+		auto out_img = img_out.ptr;
 		
 		for (int i = 0; i < cnt; i++) {
 			auto v = std::min<T>(std::max<T>(in_img[i],min_val),max_val);

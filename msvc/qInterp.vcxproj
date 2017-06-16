@@ -34,11 +34,9 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="OpenNI2.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
-    <Import Project="OpenNI2.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros">
     <NuGetPackageImportStamp>13016ba5</NuGetPackageImportStamp>
@@ -91,7 +89,12 @@
     <ClInclude Include="..\src\depth_proc.h" />
     <ClInclude Include="..\src\image.h" />
     <ClInclude Include="..\src\imshow.h" />
-    <ClInclude Include="..\src\oni_camera.h" />
+    <ClInclude Include="..\src\rs_camera.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\librealsense\librealsense.vc12\realsense-s\realsense-s.vcxproj">
+      <Project>{622186c4-6d7d-4288-b8fd-8f08419181c2}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
