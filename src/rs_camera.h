@@ -24,7 +24,7 @@ public:
             dev->set_option(rs::option::r200_emitter_enabled, true);
             dev->set_option(rs::option::r200_lr_auto_exposure_enabled, true);
         }
-        catch (std::exception & e) {
+        catch (...) {
             return false;
         }
         auto intrin = dev->get_stream_intrinsics(rs::stream::depth);

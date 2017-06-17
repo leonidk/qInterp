@@ -1,55 +1,42 @@
 #testing algorithm soudness with 1D example
 from pylab import *
-length = 10
+length = 11
 L1 = True
 
 x = [0]*length + [1]*length + [2]*length + [1]*length + [0]*length
 y = [0]*length + [1]*length + [2]*length + [1]*length + [0]*length
-d1 = [15 if L1 else 32768]*len(x)
-d2 = [15 if L1 else 32768]*len(x)
-dd = [15 if L1 else 32768]*len(x)
+e = [0]*len(x)
+d1 = [32768 if L1 else 32768]*len(x)
+d2 = [32768 if L1 else 32768]*len(x)
+mD1 = [0]*len(x)
+mD2 = [0]*len(x)
 
-e1 = [0]*length + [0]*length + [0]*length + [0]*length + [0]*length 
-e2 = [0]*length + [0]*length + [0]*length + [0]*length + [0]*length 
-ed = [0]*length + [0]*length + [0]*length + [0]*length + [0]*length 
-
-
-#d1[0] = 1
-#d1[-1] = 1
-#d2[0] = 1
-#d2[-1] = 1
-ed[0] = 1
-ed[-1] = 1
-dd[0] = 1
-dd[-1] = 1
+e[0] = 1
+e[-1] = 1
+d1[0] = 0.5
+d1[-1] = 0.5
+d2[0] = 0.5
+d2[-1] = 0.5
+mD1[0] = 0.5
+mD1[-1] = 0.5
+mD2[0] = 0.5
+mD2[-1] = 0.5
 for i in range(1,len(x)-1):
 	if x[i-1]-x[i] >= 1 or x[i+1]-x[i] >= 1:
+		e[i] |= 1
 		d1[i] = 0.5
-		e1[i] = 1
-		e2[i] = 1
+		mD1[i] = 0.5
 	if x[i-1]-x[i] <= -1 or x[i+1]-x[i] <= -1:
+		e[i] |= 2
 		d2[i] = 0.5
-		e2[i] = 1
-		e1[i] = 1
+		mD2[i] = 0.5
 if L1:
 	for i in range(1,len(x)):
-		if e2[i] != 1 :
-			d1[i] = min(d1[i],d1[i-1]+1)
-		if e1[i] != 1:
-			d2[i] = min(d2[i],d2[i-1]+1)
-		if ed[i] != 1:
-			dd[i] = min(dd[i],dd[i-1]+1)
-		else:
-			print 'ol'
+		d1[i] = min(d1[i],d1[i-1]+1)
+		d2[i] = min(d2[i],d2[i-1]+1)
 	for i in reversed(range(0,len(x)-1)):
-		if e1[i] != 1:
-			d1[i] = min(d1[i],d1[i-1]+1)
-		if e2[i] != 1:
-			d2[i] = min(d2[i],d2[i-1]+1)
-		if ed[i] != 1:
-			dd[i] = min(dd[i],dd[i-1]+1)
-		else:
-			print 'sp'
+		d1[i] = min(d1[i],d1[i+1]+1)
+		d2[i] = min(d2[i],d2[i+1]+1)
 else:
 	v = [0.0]*(len(x)+1)
 	z = [0.0]*(len(x)+1)
@@ -97,21 +84,27 @@ else:
 			k = k+1
 		d2[q] = (q-v[k])*(q-v[k]) + d2[v[k]]
 #needs iterations to deal with non-convex regions
-if False:
-	for i in range(len(x)):
-		sw = min(d1[i],d2[i])
-		lw = max(mD1[i],mD2[i])
-		sgn = 1 if sw == d1[i] else -1
-		sgn2 = '+' if sgn == 1 else '-'
-		#print d1[i],d2[i],sgn2,lw,mD1[i],mD2[i]
-		den = 2*lw-2
-		shift = float(d2[i]+d1[i]-2)/(den if den != 0 else 1)
+for iters in range(5):
+	for i in range(1,len(x)):
+		mD1[i] = 0.5 if d1[i] == 0.5 else max(d1[i],max(mD1[i],mD1[i-1]))
+		mD2[i] = 0.5 if d2[i] == 0.5 else max(d2[i],max(mD2[i],mD2[i-1]))
+	for i in reversed(range(0,len(x)-1)):
+		mD1[i] = 0.5 if d1[i] == 0.5 else max(d1[i],max(mD1[i],mD1[i+1]))
+		mD2[i] = 0.5 if d2[i] == 0.5 else max(d2[i],max(mD2[i],mD2[i+1]))
 
-		print i,shift,sw,lw,d1[i],d2[i],float(d2[i]+d1[i]-2),den
-		y[i] = x[i] + sgn*(0.5-0.5*shift)
+for i in range(len(x)):
+	sw = min(d1[i],d2[i])
+	lw = max(mD1[i],mD2[i])
+	sgn = 1 if sw == d1[i] else -1
+	sgn2 = '+' if sgn == 1 else '-'
+	#print d1[i],d2[i],sgn2,lw,mD1[i],mD2[i]
+	den = 2*lw-2
+	shift = float(d2[i]+d1[i]-2)/(den if den != 0 else 1)
+
+	print i,shift,sw,lw,d1[i],d2[i],float(d2[i]+d1[i]-2),den
+	y[i] = x[i] + sgn*(0.5-0.5*shift)
+
 close('all')
 plot(x)
-plot(d1)
-plot(d2)
-#plot(dd)
+plot(y)
 show()

@@ -14,7 +14,7 @@ int main(int argc, char* argv[])
 			img::Img<uint16_t> depth(cam.getXDim(), cam.getYDim(),cam.getDepth());
 			const int convexSegmentIterations = 1;
             const int zScaleFactor = 35;
-            const int zToDispConst = cam.disp_factor;
+            const int zToDispConst = (int)std::round(cam.disp_factor);
 			auto qDepth = depth.copy();
 			{
                 auto p = qDepth.ptr;
@@ -24,8 +24,8 @@ int main(int argc, char* argv[])
 			}
 			auto oDepth = qDepth.copy();
 			auto q2Depth = qDepth.copy();
-			generateDequant<35, convexSegmentIterations>(qDepth);
-			generateDequant<35, convexSegmentIterations, false>(q2Depth);
+			generateDequant<true>(qDepth);
+			generateDequant<false>(q2Depth);
 
 			{
 				auto nc = zToDispConst * 35;
@@ -34,13 +34,7 @@ int main(int argc, char* argv[])
 					p[i] = p[i] ? nc / ((int)p[i]) : 0;
 				}
 			}
-			{
-				auto nc = zToDispConst * 35;
-				auto p = q2Depth.ptr;
-				for (int i = 0; i < qDepth.width*qDepth.height; i++) {
-					p[i] = p[i] ? nc / ((int)p[i]) : 0;
-				}
-			}
+
 			{
 				auto p = oDepth.ptr;
 				for (int i = 0; i < oDepth.width*oDepth.height; i++) {
@@ -49,9 +43,7 @@ int main(int argc, char* argv[])
 			}
             auto normals = generateNormals_FromDepth<1>(depth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
             auto qNrms = generateNormals_FromDepth<1>(oDepth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
-
             auto dqNrms1 = generateNormals_FromDepth<1>(qDepth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
-            auto dqNrms2 = generateNormals_FromDepth<1>(q2Depth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
 
 			img::convertToGrey(qDepth, z_viz, (uint16_t)500, (uint16_t)2500);
 
@@ -59,7 +51,6 @@ int main(int argc, char* argv[])
             img::imshow("o_normals", img::convertToGrey(normals, -1.0f, 1.0f));
             img::imshow("l1_normals", img::convertToGrey(dqNrms1, -1.0f, 1.0f));
 			img::imshow("q_normals", img::convertToGrey(qNrms, -1.0f, 1.0f));
-            img::imshow("l2_normals", img::convertToGrey(dqNrms2, -1.0f, 1.0f));
 
 			auto c = img::getKey();
 		}
