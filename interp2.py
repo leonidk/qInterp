@@ -13,21 +13,29 @@ ed = [0]*len(x)
 ep = [0]*len(x)
 
 
-
-for i in range(1,len(x)):
-	if x[i-1] < x[i]:
-		en[i] = 1
-		#en[i-1] = 1
-	if x[i-1] > x[i]:
-		ep[i] = 1
-		#ep[i-1] = 1
-for i in range(len(x)-2,-1,-1):
-	if x[i+1] < x[i]:
-		en[i] = 1
-		#en[i+1] = 1
-	if x[i+1] > x[i]:
-		ep[i] = 1
-		#ep[i+1] = 1
+if False:
+	for i in range(1,len(x)):
+		if x[i-1] < x[i]:
+			en[i] = 1
+			#en[i-1] = 1
+		if x[i-1] > x[i]:
+			ep[i] = 1
+			#ep[i-1] = 1
+	for i in range(len(x)-2,-1,-1):
+		if x[i+1] < x[i]:
+			en[i] = 1
+			#en[i+1] = 1
+		if x[i+1] > x[i]:
+			ep[i] = 1
+			#ep[i+1] = 1
+else:
+	for i in range(1,len(x)):
+		if x[i-1] < x[i]:
+			en[i] = 1
+			ep[i-1] = 1
+		if x[i-1] > x[i]:
+			ep[i] = 1
+			en[i-1] = 1
 def dt(e,e2,e3):
 	d = [1000]*len(e)
 	for i in range(len(e)):

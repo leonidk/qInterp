@@ -19,34 +19,42 @@ inline void generatePoints(img::Img<uint16_t> input, const float fx, const float
         }
     }
 }
-template <bool doL1 = true>
-inline img::Img<uint32_t> distTransform(img::Img<uint8_t> edges)
+template <bool doL1 = true, bool check = true>
+inline img::Img<uint32_t> distTransform(img::Img<uint8_t> edges, img::Img<uint8_t> oedges)
 {
     auto w = edges.width;
     auto h = edges.height;
     img::Img<uint32_t> dist(w, h);
 
     for (int i = 0; i < w*h; i++) {
-        dist(i) = edges(i) ? 0 : INT_MAX;
+        dist(i) = edges(i) ? 1 : std::max(w,h);
     }
 
     if (doL1) {
         //do each row, forward and backwards pass
         for (int y = 0; y < h; y++) {
             for (int x = 1; x < w; x++) {
-                dist(y, x) = std::min<uint32_t>(dist(y, x), 1 + dist(y, x - 1));
+                if (!check || oedges(y, x) == 0) {
+                    dist(y, x) = std::min<uint32_t>(dist(y, x), 2 + dist(y, x - 1));
+                }
             }
             for (int x = w - 2; x >= 0; x--) {
-                dist(y, x) = std::min<uint32_t>(dist(y, x), 1 + dist(y, x + 1));
+                if (!check || oedges(y, x) == 0) {
+                    dist(y, x) = std::min<uint32_t>(dist(y, x), 2 + dist(y, x + 1));
+                }
             }
         }
         //do each column, forward and backwards pass
         for (int x = 0; x < w; x++) {
             for (int y = 1; y < h; y++) {
-                dist(y, x) = std::min<uint32_t>(dist(y, x), 1 + dist(y - 1, x));
+                if (!check || oedges(y, x) == 0) {
+                    dist(y, x) = std::min<uint32_t>(dist(y, x), 2 + dist(y - 1, x));
+                }
             }
             for (int y = h - 2; y >= 0; y--) {
-                dist(y, x) = std::min<uint32_t>(dist(y, x), 1 + dist(y + 1, x));
+                if (!check || oedges(y,x) == 0 ) {
+                    dist(y, x) = std::min<uint32_t>(dist(y, x), 2 + dist(y + 1, x));
+                }
             }
         }
     }
@@ -121,7 +129,7 @@ inline img::Img<uint32_t> distTransform(img::Img<uint8_t> edges)
 }
 
 template <bool doL1 = true>
-inline void generateDequant(img::Img<uint16_t> input)
+inline img::Img<float> generateDequant(img::Img<uint16_t> input)
 {
     auto p = input.ptr;
     auto w = input.width;
@@ -130,66 +138,63 @@ inline void generateDequant(img::Img<uint16_t> input)
     img::Img<uint8_t> edgesN(w, h, (uint8_t)0); // negative
     img::Img<uint8_t> edgesP(w, h, (uint8_t)0); // positive
     img::Img<uint8_t> edgesD(w, h, (uint8_t)0); // discon
-
+    img::Img<float> output(w, h, 0.0f);
     // for the first row
     for (int x = 0; x < w; x++) {
         auto y = 0;
         edgesN(y, x) = edgesP(y, x) = edgesD(y, x) = 1;
     }
     // for the rest of the image
-    for (int y = 1; y < h - 1; y++) {
+    for (int y = 1; y < h ; y++) {
         //first col
         int x = 0;
         edgesN(y, x) = edgesP(y, x) = edgesD(y, x) = 1;
 
-        for (int x = 1; x < w - 1; x++) {
+        for (int x = 1; x < w ; x++) {
             int d  = input(y, x);
             int dn = input(y - 1, x);
-            int ds = input(y + 1, x);
             int dw = input(y, x - 1);
-            int de = input(y, x + 1);
+   
 
             if (!d) {
                 edgesD(y, x) = 1;
             }
-            if ((dw - d) >= 1 || (de - d) >= 1 || (dn - d) >= 1 || (ds - d) >= 1) {
-                edgesP(y, x) = 1;
-            }
-            if ((dw - d) <= -1 || (de - d) <= -1 || (dn - d) <= -1 || (ds - d) <= -1) {
+            if (dw < d) {
                 edgesN(y, x) = 1;
+                edgesP(y, x - 1) = 1;
+            }
+            if (dw > d) {
+                edgesP(y, x) = 1;
+                edgesN(y, x - 1) = 1;
+            }
+            if (dn < d) {
+                edgesN(y, x) = 1;
+                edgesP(y-1, x) = 1;
+            }
+            if (dn > d) {
+                edgesP(y, x) = 1;
+                edgesN(y-1,x) = 1;
             }
         }
-        // last col
-        x = w - 1;
-        edgesN(y, x) = edgesP(y, x) = edgesD(y, x) = 1;
 
     }
-    // for the last row 
-    for (int x = 0; x < w; x++) {
-        auto y = (h - 1);
-        edgesN(y, x) = edgesP(y, x) = edgesD(y, x) = 1;
+
+    auto nDist = distTransform<doL1,true>(edgesN,edgesP);
+    auto pDist = distTransform<doL1,true>(edgesP,edgesN);
+    auto dDist = distTransform<doL1,false>(edgesD,edgesN);
+
+    for (int i = 0; i < w*h; i++) {
+        if (!input(i))
+            continue;
+        if (nDist(i) < pDist(i) && dDist(i) < pDist(i)) {
+            output(i) = input(i) - 0.5f*(dDist(i)) / static_cast<float>(dDist(i) + nDist(i));
+        } else if (nDist(i) < pDist(i) && dDist(i) < pDist(i)) {
+            output(i) = input(i) + 0.5f*(dDist(i)) / static_cast<float>(dDist(i) + pDist(i));
+        } else { 
+            output(i) = input(i) + (0.5f*nDist(i) - 0.5f*pDist(i)) / static_cast<float>(pDist(i) + nDist(i));
+        }
     }
-
-    auto nDist = distTransform<doL1>(edgesN);
-    auto pDist = distTransform<doL1>(edgesP);
-    auto dDist = distTransform<doL1>(edgesD);
-
-    //const float halfScale = scaleFactor*0.5f;
-    //for (int i = 0; i < w*h; i++) {
-    //    int sw = std::min<uint32_t>(dP[2 * i + 0], dP[2 * i + 1]);
-    //    int lw = std::max<uint32_t>(mdP[2 * i + 0], mdP[2 * i + 1]);
-    //    int sgn = (sw == dP[2 * i + 0]) ? 1 : -1;
-    //    int dst = (lw == mdP[2 * i + 0]) ? dP[2 * i + 0] : dP[2 * i + 1];
-    //    if (p[i]) {
-    //        auto den = 2 * lw - 2;
-    //        float shift = (static_cast<float>(dP[2 * i + 1]) + static_cast<float>(dP[2 * i + 0]) - 2.0f) / static_cast<float>(den ? den : 1);
-
-    //        shift = halfScale - halfScale*shift;
-    //        int i_shift = (int)nearbyint(sgn*shift);
-    //        p[i] = p[i] * scaleFactor + i_shift;
-    //    }
-    //}
-    return;
+    return output;
 }
 
 template <typename T>

@@ -37,6 +37,12 @@ public:
         this->py = intrin.ppy;
         disp_factor = intrin.fx*abs(1000.0f*extrin.translation[0]);
         rs_apply_depth_control_preset((rs_device*)dev, 4);
+
+        // just because
+        for (int i = 0; i < 10; i++)
+            dev->wait_for_frames();
+
+
         return true;
     }
     bool syncNext() override {
