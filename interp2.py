@@ -2,8 +2,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 length = 10
-x = [0]*length + [1]*length
-#x = [0]*length + [1]*length + [2]*length + [1]*length + [0]*length
+#x = [0]*length + [1]*length
+x = [0]*length + [1]*length + [2]*length + [1]*length + [0]*length
 dd = [0]*len(x)
 dp = [0]*len(x)
 dn = [0]*len(x)
@@ -40,20 +40,19 @@ def dt(e,e2,e3):
 		if  e[i] == 0:
 			d[i] = min(d[i],d[i+1]+2)
 	return d
-def dt(e,e2,e3):
+def dt(e,e2,e3,check=True):
 	d = [2000]*len(e)
 	for i in range(len(e)):
 		if e[i] > 0:
 			d[i] = 1
 	i = 0
 	while i < len(e):
-		if e[i] == 0:
+		if (not check) or e2[i] ==0 and e3[i]==0:
 			d[i] = min(d[i],d[i-1]+2)
-			#i+=1
 		i+= 1
 	i = len(e)-2
 	while i >= 0:
-		if e[i] ==0 :
+		if (not check) or e2[i] ==0 and e3[i]==0:
 			d[i] = min(d[i],d[i+1]+2)
 		i -= 1
 	return d
@@ -61,30 +60,20 @@ dp = dt(ep,ed,en)
 dn = dt(en,ed,ep)
 ed[0] = 1
 ed[-1] = 1
-dd = dt(ed,ep,en)
+dd = dt(ed,ep,en,False)
 
 y = [-1]*len(x)
 for i in range(len(x)):
 	m = -123123
-	if dn[i] == dp[i] and dd[i] < dn[i]: # this is an edges
-		y[i] = x[i]
+	if dn[i] < dp[i] and dd[i] < dp[i]:
 		m = 1
-	elif dn[i] == dd[i] and dp[i] < dn[i]:
-		y[i] = x[i] + 0.5
+		y[i] = x[i] - 0.5*(dd[i])/float(dd[i]+dn[i])
+	elif dp[i] < dn[i] and dd[i] < dn[i]:
 		m = 2
-	elif dp[i] == dd[i] and dn[i] < dp[i]:
-		y[i] = x[i] - 0.5
-		m = 3
-	elif dn[i] >= dd[i] and dn[i] >= dp[i]:#dd[i] < dp[i] and dn[i] < dd[i]: #near edge
-		y[i] = x[i] + 0.5*((dd[i]-0)/float(dp[i]+dd[i]))
-		m = 4
-	elif dp[i] >= dd[i] and dp[i] >= dp[i]: #near edge
-		y[i] = x[i] - 0.5*((dd[i]-0)/float(dn[i]+dd[i]))#pass#y[i] = x[i]  0.5*((dd[i]-0)/float(dd[i]+dp[i]))
-		m = 5
+		y[i] = x[i] + 0.5*(dd[i])/float(dd[i]+dp[i])
 	else:
-		y[i] = x[i] + 0.5*((dn[i]-dp[i])/float(dn[i]+dp[i])) 
-		m = 6
-		#pass
+		m = 3
+		y[i] = x[i] + 0.5*(dn[i]-dp[i])/float(dn[i]+dp[i])
 		#y[i] = x[i] + 0.5*((dn[i]-dp[i])/float(dn[i]+dp[i])) 
 	print(i,en[i],ep[i],ed[i],dn[i],dp[i],dd[i],x[i],y[i],m)
 
