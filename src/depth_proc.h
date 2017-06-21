@@ -228,8 +228,8 @@ inline img::Image<float, 3> generatePoints(img::Img<uint16_t> input, const float
 }
 
 
-template <int size>
-inline void generateNormals_FromDepth(const uint16_t *depth, const int width, const int height, const float fx, const float fy, const float ppx, const float ppy, float *normals) {
+template <int size, typename T>
+inline void generateNormals_FromDepth(const T *depth, const int width, const int height, const float fx, const float fy, const float ppx, const float ppy, float *normals) {
     const auto cX = 1.0f / fx;
     const auto cY = 1.0f / fy;
     const auto xStep = cX * size;
@@ -345,14 +345,12 @@ inline void generateNormals_FromDepth(const uint16_t *depth, const int width, co
     }
 }
 
-
-template <int size>
-inline img::Image<float, 3> generateNormals_FromDepth(img::Img<uint16_t> input, const float fx, const float fy, const float px, const float py) {
+template <int size,typename T>
+inline img::Image<float, 3> generateNormals_FromDepth(img::Img<T> input, const float fx, const float fy, const float px, const float py) {
     img::Image<float, 3> output(input.width, input.height);
     generateNormals_FromDepth<size>(input.ptr, input.width, input.height, fx, fy, px, py, output.ptr);
     return output;
 }
-
 
 template <int size>
 inline void generateNormals_fromPoints(img::Image<float, 3> input, img::Image<float, 3> output) {

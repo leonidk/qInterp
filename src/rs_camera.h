@@ -37,7 +37,7 @@ public:
         this->py = intrin.ppy;
         disp_factor = intrin.fx*abs(1000.0f*extrin.translation[0]);
         rs_apply_depth_control_preset((rs_device*)dev, 4);
-
+        auto et = dev->get_extrinsics(rs::stream::infrared, rs::stream::infrared2);
         // just because
         for (int i = 0; i < 10; i++)
             dev->wait_for_frames();
@@ -56,10 +56,11 @@ public:
         return nullptr;
     }
     ~RSCamera() {
-        dev->stop();
+        if (dev != nullptr)
+            dev->stop();
     }
     float disp_factor = 8000.f*35;
   private:
       rs::context ctx;
-      rs::device *dev;
+      rs::device *dev = nullptr;
 };

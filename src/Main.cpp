@@ -23,8 +23,8 @@ int main(int argc, char* argv[])
 			auto oDepth = qDepth.copy();
 			auto q2Depth = qDepth.copy();
             auto l1DepthF = generateDequant<true>(qDepth);
-            auto l2DepthF = generateDequant<false>(q2Depth);
-
+            //auto l2DepthF = generateDequant<false>(q2Depth);
+            img::Img<float> qDepthF = l1DepthF.copy();
 			{
                 for (int i = 0; i < qDepth.width*qDepth.height; i++) {
                     qDepth(i) = depth(i) ? (uint16_t)std::round(zToDispConst / (l1DepthF(i))) : 0;
@@ -32,7 +32,7 @@ int main(int argc, char* argv[])
 			}
             {
                 for (int i = 0; i < qDepth.width*qDepth.height; i++) {
-                    q2Depth(i) = depth(i) ? (uint16_t)std::round(zToDispConst / (l2DepthF(i))) : 0;
+                    qDepthF(i) = depth(i) ? zToDispConst / l1DepthF(i) : 0;
                 }
             }
 			{
@@ -43,8 +43,8 @@ int main(int argc, char* argv[])
 			}
             auto normals = generateNormals_FromDepth<1>(depth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
             auto qNrms = generateNormals_FromDepth<1>(oDepth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
-            auto dqNrms1 = generateNormals_FromDepth<1>(qDepth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
-            auto dqNrms2 = generateNormals_FromDepth<1>(q2Depth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
+            auto dqNrms1 = generateNormals_FromDepth<1>(qDepthF, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
+            //auto dqNrms2 = generateNormals_FromDepth<1>(q2Depth, cam.getFx(), cam.getFy(), cam.getPx(), cam.getPy());
 
 			img::convertToGrey(qDepth, z_viz, (uint16_t)500, (uint16_t)2500);
 
