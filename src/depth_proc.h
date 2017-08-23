@@ -59,6 +59,8 @@ inline img::Img<uint32_t> distTransform(img::Img<uint8_t> edges, img::Img<uint8_
         }
     }
     else {
+        // I think this wasn't working last I tried it
+        /* 
         img::Img<float> b(std::max<int>(w, h) + 1, 1);
         img::Img<float> p(std::max<int>(w, h) + 1, 1);
         auto boundries = b.ptr;
@@ -122,7 +124,7 @@ inline img::Img<uint32_t> distTransform(img::Img<uint8_t> edges, img::Img<uint8_
                         k = k + 1;
                     dist(y, x) = (uint32_t)(square(y - parabolas[k]) + f((int)parabolas[k]));
                 }
-            }
+            } */
         
     }
     return dist;

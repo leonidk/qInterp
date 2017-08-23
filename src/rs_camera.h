@@ -1,8 +1,12 @@
 #pragma once
-#include "Camera.h"
+#include "camera.h"
+#ifdef _WIN32
 #include "../librealsense/include/librealsense/rs.hpp"
 #include "../librealsense/include/librealsense/rsutil.h"
-
+#else
+#include <librealsense/rs.hpp>
+#include <librealsense/rsutil.h>
+#endif
 class RSCamera : public Camera {
 public:
     RSCamera() {
@@ -35,7 +39,7 @@ public:
         this->fy = intrin.fy;
         this->px = intrin.ppx;
         this->py = intrin.ppy;
-        disp_factor = intrin.fx*abs(1000.0f*extrin.translation[0]);
+        disp_factor = intrin.fx*std::abs(1000.0f*extrin.translation[0]);
         rs_apply_depth_control_preset((rs_device*)dev, 4);
         auto et = dev->get_extrinsics(rs::stream::infrared, rs::stream::infrared2);
         // just because
