@@ -190,7 +190,7 @@ inline img::Img<float> generateDequant(img::Img<uint16_t> input)
             continue;
         if (nDist(i) < pDist(i) && dDist(i) < pDist(i)) {
             output(i) = input(i) - 0.5f*(dDist(i)) / static_cast<float>(dDist(i) + nDist(i));
-        } else if (nDist(i) < pDist(i) && dDist(i) < pDist(i)) {
+        } else if (pDist(i) < nDist(i) && dDist(i) < nDist(i)) {
             output(i) = input(i) + 0.5f*(dDist(i)) / static_cast<float>(dDist(i) + pDist(i));
         } else { 
             output(i) = input(i) + (0.5f*nDist(i) - 0.5f*pDist(i)) / static_cast<float>(pDist(i) + nDist(i));
